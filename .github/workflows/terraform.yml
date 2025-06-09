@@ -1,0 +1,56 @@
+name: Terraform CI/CD Pipeline for EC2
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest  # GitHub's latest Ubuntu runner
+
+    steps:
+    # Step 1: Checkout code from the repository
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    # Step 2: Set up Terraform (hashicorp/setup-terraform action)
+    - name: Set up Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: '1.4.0'  # Specify your required Terraform version
+
+    # Step 3: Configure AWS credentials using GitHub Secrets
+    - name: Configure AWS credentials
+      uses: aws-actions/configure-aws-credentials@v1
+      with:
+        aws_access_key_id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+        aws_secret_access_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+        aws_region: us-east-1  # Specify the AWS region (same as in Terraform config)
+
+    # Step 4: Initialize Terraform
+    - name: Terraform Init
+      run: terraform init
+
+    # Step 5: Check Terraform file formatting (optional but recommended)
+    - name: Terraform Format
+      run: terraform fmt -check -diff
+
+    # Step 6: Validate Terraform configuration
+    - name: Terraform Validate
+      run: terraform validate
+
+    # Step 7: Terraform Plan to preview changes
+    - name: Terraform Plan
+      run: terraform plan -out=tfplan
+
+    # Step 8: Apply Terraform changes (auto-approve)
+    - name: Terraform Apply
+      run: terraform apply -auto-approve tfplan
+
+    # Step 9: Output EC2 Instance ID
+    - name: Output EC2 Instance ID
+      run: terraform output instance_id
